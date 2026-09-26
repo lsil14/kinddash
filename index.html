@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dashboard Gerencial - Kind Brasil</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#003366',
+              blue: '#0284c7',
+              lightBlue: '#93c5fd',
+              cyan: '#06b6d4',
+              orange: '#ea580c',
+              lightOrange: '#fdba74',
+              darkSlate: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SheetJS CDN (para processar planilhas Excel do SharePoint ou locais) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <!-- Microsoft MSAL.js CDN (Autenticação Oficial Microsoft 365 / Entra ID) -->
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+
+  <!-- Módulo de Autenticação -->
+  <script src="auth.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-900 pb-16 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+  <!-- TELA DE LOGIN CORPORATIVO MICROSOFT (GATEKEEPER) -->
+  <div id="login-gatekeeper" class="hidden min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4 relative overflow-hidden z-50">
+    <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center mb-6">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 mb-4 shadow-sm">
+        <div class="w-2.5 h-2.5 rounded-full bg-orange-500 pulse-dot"></div>
+        <span>Portal Executivo • Kind Brasil</span>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+        Acesso Corporativo
+      </h2>
+      <p class="mt-2 text-xs sm:text-sm text-slate-400">
+        Painel Estratégico de Faturamento, Carteira e Produção
+      </p>
+    </div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+      <div class="bg-white py-8 px-6 shadow-2xl rounded-2xl sm:px-10 border border-slate-100 space-y-5">
+        
+        <div class="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50/80 border border-blue-100 text-xs text-blue-900">
+          <svg class="w-5 h-5 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"></path>
+          </svg>
+          <span class="leading-relaxed">Autenticação com sua conta corporativa Microsoft 365 / Entra ID.</span>
+        </div>
+
+        <button id="btn-ms-login" type="button" class="w-full flex items-center justify-center gap-3 py-3 px-4 border border-slate-300 rounded-xl shadow-xs bg-white hover:bg-slate-50 text-sm font-bold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+          <svg class="w-5 h-5" viewBox="0 0 23 23">
+            <path fill="#f35325" d="M1 1h10v10H1z"/>
+            <path fill="#81bc06" d="M12 1h10v10H12z"/>
+            <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+            <path fill="#ffba08" d="M12 12h10v10H12z"/>
+          </svg>
+          <span>Entrar com a Conta Microsoft</span>
+        </button>
+
+        <div class="relative flex items-center justify-center">
+          <div class="border-t border-slate-200 w-full"></div>
+          <span class="bg-white px-3 text-xs text-slate-400 font-semibold uppercase">OU</span>
+          <div class="border-t border-slate-200 w-full"></div>
+        </div>
+
+        <button id="btn-bypass-demo" type="button" class="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors">
+          Acessar Modo Demonstração (Sem Login)
+        </button>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+          <span class="text-slate-400">Admin da Empresa?</span>
+          <button id="btn-open-azure-config" type="button" class="font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Configurar Azure / Entra ID
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Header Fixo Mobile-First (App Bar) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      
+      <!-- Linha superior: Logo, Título, Data, Botão Config e Perfil de Usuário -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <!-- Indicador visual e Título -->
+          <div class="w-3 h-3 rounded-full bg-orange-600 pulse-dot"></div>
+          <div>
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+              Kind Brasil
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200" id="header-data-ref">
+                24/09/2026
+              </span>
+            </h1>
+            <p class="text-[11px] font-medium text-slate-500">Painel Executivo de Faturamento e Produção</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Botão de Configuração de Dados (SharePoint / Excel) -->
+          <button id="btn-open-config" type="button" class="p-2 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="Configurar Conexão SharePoint">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <span class="hidden sm:inline">Fonte de Dados</span>
+          </button>
+
+          <!-- Perfil do Usuário Logado e Botão Sair -->
+          <div class="flex items-center gap-1.5 pl-2 border-l border-slate-200">
+            <div id="user-profile-avatar" class="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              U
+            </div>
+            <div class="hidden md:block text-left">
+              <div id="user-profile-name" class="text-xs font-bold text-slate-800 leading-tight max-w-[110px] truncate">Usuário</div>
+              <div id="user-profile-email" class="text-[10px] text-slate-400 leading-tight max-w-[110px] truncate">email@empresa.com</div>
+            </div>
+            <button id="btn-user-logout" type="button" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors" title="Sair da Conta Microsoft">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linha de Controles: Filtro de Planta, Filtro de Mercado e Status -->
+      <div class="flex items-center justify-between sm:justify-end gap-2 text-xs">
+        <div class="flex items-center gap-1.5">
+          <label for="plant-select" class="font-bold text-slate-700">Planta:</label>
+          <select id="plant-select" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer shadow-xs">
+            <option value="Kind Brasil">Kind Brasil (Consolidado)</option>
+            <option value="Atibaia">Atibaia</option>
+            <option value="Campo Magro">Campo Magro</option>
+            <option value="Castanhal">Castanhal</option>
+            <option value="Joinville">Joinville</option>
+            <option value="Manaus">Manaus</option>
+            <option value="São Simão">São Simão</option>
+            <option value="Sarzedo">Sarzedo</option>
+            <option value="Simões Filho">Simões Filho</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <label for="market-select" class="font-bold text-slate-700">Mercado:</label>
+          <select id="market-select" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer shadow-xs max-w-[140px] truncate">
+            <option value="Todos">Todos os Mercados</option>
+            <option value="Automotive">Automotive</option>
+            <option value="Building">Building</option>
+            <option value="Domestic Appliances">Domestic Appliances</option>
+            <option value="Fish">Fish</option>
+            <option value="Food">Food</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Health and Pharma">Health and Pharma</option>
+            <option value="HVAC">HVAC</option>
+            <option value="Industrial solutions">Industrial solutions</option>
+            <option value="Leisure and Sport">Leisure and Sport</option>
+          </select>
+        </div>
+
+        <!-- Status da Fonte de Dados -->
+        <div id="source-status-badge" class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+          <div id="source-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></div>
+          <span id="source-status-text">Modo Demo</span>
+        </div>
+
+        <!-- Badge Dias de Trabalho -->
+        <div class="hidden md:block text-slate-500 font-medium font-mono-numbers" id="header-workdays">
+          Dias de trabalho: 23
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Sub-header com Abas de Navegação Mobile First (Scroll Horizontal) -->
+  <nav class="sticky top-[93px] sm:top-[65px] z-30 bg-slate-50/90 backdrop-blur-md border-b border-slate-200 py-2 px-4 shadow-2xs">
+    <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto custom-scroll-x no-scrollbar">
+      <button data-view="visao-geral" class="nav-tab-btn active-nav-pill px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-smooth shadow-xs">
+        📱 Visão Geral
+      </button>
+      <button data-view="faturamento" class="nav-tab-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-smooth shadow-xs">
+        📈 Faturamento & Carteira
+      </button>
+      <button data-view="producao" class="nav-tab-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-smooth shadow-xs">
+        🏭 Produção (*D-2)
+      </button>
+      <button data-view="tabela" class="nav-tab-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-smooth shadow-xs">
+        📋 Tabela Diária
+      </button>
+      <button data-view="todas" class="nav-tab-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-smooth shadow-xs">
+        📑 Todas as Visões
+      </button>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+
+    <!-- SEÇÃO 1: CARDS DE KPIS PRINCIPAIS (Topo da Imagem 24/09/2026) -->
+    <section id="sec-kpis" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+      
+      <!-- Faturamento -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Faturamento</div>
+        <div class="text-xl sm:text-2xl font-black text-slate-900 font-mono-numbers" id="kpi-faturamento">32.670</div>
+        <div class="text-[10px] text-slate-400 mt-0.5 font-medium">Realizado no mês</div>
+        <div class="absolute top-0 right-0 w-12 h-12 bg-blue-50 rounded-bl-full pointer-events-none -mr-4 -mt-4"></div>
+      </div>
+
+      <!-- Tonelada -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Tonelada</div>
+        <div class="text-xl sm:text-2xl font-black text-orange-600 font-mono-numbers" id="kpi-tonelada">1.053,1 T</div>
+        <div class="text-[10px] text-slate-400 mt-0.5 font-medium">Volume faturado</div>
+      </div>
+
+      <!-- Carteira -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Carteira</div>
+        <div class="text-xl sm:text-2xl font-black text-slate-800 font-mono-numbers" id="kpi-carteira">19.063</div>
+        <div class="text-[10px] text-slate-400 mt-0.5 font-medium">Backlog de pedidos</div>
+      </div>
+
+      <!-- Carteira + Fat. -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Carteira + Fat.</div>
+        <div class="text-xl sm:text-2xl font-black text-slate-800 font-mono-numbers" id="kpi-carteira-fat">51.733</div>
+        <div class="text-[10px] text-slate-400 mt-0.5 font-medium">Faturado + Carteira</div>
+      </div>
+
+      <!-- Acumulado (%) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Acumulado</div>
+        <div class="text-xl sm:text-2xl font-black text-red-600 font-mono-numbers" id="kpi-acumulado">-14%</div>
+        <div class="text-[10px] text-red-500 mt-0.5 font-bold">Abaixo da meta</div>
+      </div>
+
+      <!-- Projetado -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-xs relative overflow-hidden">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Projetado</div>
+        <div class="text-xl sm:text-2xl font-black text-blue-900 font-mono-numbers" id="kpi-projetado">44.460</div>
+        <div class="text-[10px] text-slate-400 mt-0.5 font-medium">Estimativa de fechamento</div>
+      </div>
+
+    </section>
+
+    <!-- SEÇÃO 2: DONUTS DE METAS & PERFORMANCE (Meio da Imagem) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- Metas Globais Donut (Budget, Forecast, Lundi) -->
+      <section id="sec-donuts" class="lg:col-span-5 bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-800"></span>
+            Atingimento de Metas Globais
+          </h2>
+          <span class="text-[11px] text-slate-500 font-semibold">Base Lundi</span>
+        </div>
+
+        <!-- 3 Donuts em Grid Mobile -->
+        <div class="grid grid-cols-3 gap-2 py-2">
+          
+          <!-- Donut Budget -->
+          <div class="flex flex-col items-center text-center">
+            <span class="text-xs font-bold text-slate-700 mb-1">Budget</span>
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24">
+              <canvas id="donut-budget"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="text-xs sm:text-sm font-black text-blue-900 font-mono-numbers" id="donut-budget-pct">69,3%</span>
+              </div>
+            </div>
+            <div class="mt-2 text-[11px] font-mono-numbers">
+              <div class="font-bold text-slate-800" id="donut-budget-meta">47.113</div>
+              <div class="text-red-500 font-semibold" id="donut-budget-gap">-14.443</div>
+            </div>
+          </div>
+
+          <!-- Donut Forecast -->
+          <div class="flex flex-col items-center text-center">
+            <span class="text-xs font-bold text-slate-700 mb-1">Forecast</span>
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24">
+              <canvas id="donut-forecast"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="text-xs sm:text-sm font-black text-emerald-800 font-mono-numbers" id="donut-forecast-pct">66,2%</span>
+              </div>
+            </div>
+            <div class="mt-2 text-[11px] font-mono-numbers">
+              <div class="font-bold text-slate-800" id="donut-forecast-meta">49.359</div>
+              <div class="text-red-500 font-semibold" id="donut-forecast-gap">-16.689</div>
+            </div>
+          </div>
+
+          <!-- Donut Lundi -->
+          <div class="flex flex-col items-center text-center">
+            <span class="text-xs font-bold text-slate-700 mb-1">Lundi</span>
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24">
+              <canvas id="donut-lundi"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="text-xs sm:text-sm font-black text-teal-800 font-mono-numbers" id="donut-lundi-pct">67,3%</span>
+              </div>
+            </div>
+            <div class="mt-2 text-[11px] font-mono-numbers">
+              <div class="font-bold text-slate-800" id="donut-lundi-meta">48.553</div>
+              <div class="text-red-500 font-semibold" id="donut-lundi-gap">-15.883</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Delta Projetado x Lundi -->
+        <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-center">
+          <span class="text-xs sm:text-sm font-bold text-slate-800 font-mono-numbers" id="delta-proj-lundi">
+            Δ Proj. X Lundi => -4.093
+          </span>
+        </div>
+      </section>
+
+      <!-- Acompanhamento: Lundi por Mercado (78%) / Toggle Planta -->
+      <section id="sec-plantas" class="lg:col-span-7 bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-900"></span>
+              <span id="progress-section-title">Lundi por Mercado</span>
+            </h2>
+            <span id="progress-target-label" class="text-[10px] bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded font-bold">
+              Meta Temporal: 78%
+            </span>
+          </div>
+          <button id="btn-toggle-progress-mode" type="button" class="text-[11px] text-blue-800 hover:text-blue-950 font-semibold border border-blue-200 px-2 py-0.5 rounded-lg bg-blue-50/50 hover:bg-blue-100 transition-colors">
+            Alternar Mercado / Planta
+          </button>
+        </div>
+
+        <!-- Container com as Barras de Progresso -->
+        <div id="plant-bars-container" class="space-y-1">
+          <!-- Renderizado via app.js -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SEÇÃO 3: EVOLUÇÃO DIÁRIA (Dias 1 a 30) - FATURAMENTO & TONELADAS -->
+    <section id="sec-faturamento-graficos" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-900"></span>
+            Evolução Diária de Faturamento & Carteira (Dias 1 a 30)
+          </h2>
+          <p class="text-xs text-slate-500">Dias 1 a 24 realizados | Dias 25 a 30 carteira/projetado</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded-lg font-mono-numbers">
+            Meta Diária Ajustada: 3.177
+          </span>
+        </div>
+      </div>
+
+      <!-- Gráfico 1: Faturamento Diário (com scroll horizontal touch no Mobile) -->
+      <div>
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+          <span>Faturamento Diário (R$ mil)</span>
+          <span class="text-[10px] text-slate-400 sm:hidden">← Deslize para ver os 30 dias →</span>
+        </div>
+        <div class="custom-scroll-x border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+          <div class="chart-scroll-canvas">
+            <canvas id="chart-faturamento-diario"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico 2: Toneladas Diárias (Barras Laranjas) -->
+      <div>
+        <div class="flex items-center justify-between text-xs font-bold text-orange-600 mb-1.5">
+          <span>Volume Diário (Toneladas - T)</span>
+          <span class="text-[10px] text-slate-400 sm:hidden">← Deslize para ver os 30 dias →</span>
+        </div>
+        <div class="custom-scroll-x border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+          <div class="chart-scroll-canvas">
+            <canvas id="chart-tonelada-diario"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEÇÃO 4: SEÇÃO DE PRODUÇÃO (Parte Inferior da Imagem) -->
+    <section id="sec-producao" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+            Acompanhamento de Produção Industrial
+          </h2>
+          <p class="text-xs text-slate-500">Realizado até dia 23 (*D-2) | Meta diária ajustada: 82,9 T</p>
+        </div>
+        <span class="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded self-start sm:self-auto">
+          *D-2
+        </span>
+      </div>
+
+      <!-- KPIs de Produção -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Meta Produção</div>
+          <div class="text-lg sm:text-xl font-black text-slate-900 font-mono-numbers" id="prod-meta">1.413,0 T</div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Realizado Produção*</div>
+          <div class="text-lg sm:text-xl font-black text-slate-800 font-mono-numbers" id="prod-realizado">1016,1 T</div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Acumulado</div>
+          <div class="text-lg sm:text-xl font-black text-red-600 font-mono-numbers" id="prod-acumulado">-14%</div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Projetado</div>
+          <div class="text-lg sm:text-xl font-black text-slate-800 font-mono-numbers" id="prod-projetado">1.323,7 T</div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Produção Diária (Barras Cinzas) -->
+      <div>
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+          <span>Produção Diária (Toneladas - T) vs Meta Ajustada (<span id="prod-meta-diaria">66,3 T</span>)</span>
+          <span class="text-[10px] text-slate-400 sm:hidden">← Deslize horizontalmente →</span>
+        </div>
+        <div class="custom-scroll-x border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+          <div class="chart-scroll-canvas">
+            <canvas id="chart-producao-diario"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEÇÃO 5: TABELA DIÁRIA DETALHADA COM PLANTA E MERCADO -->
+    <section id="sec-tabela-diaria" class="hidden bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-900"></span>
+            Detalhamento Diário: Planta e Mercado
+          </h2>
+          <p class="text-xs text-slate-500">Acompanhamento diário por unidade fabril e segmento de mercado</p>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros da Tabela -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+        <div>
+          <label for="table-filter-plant" class="block font-bold text-slate-700 mb-1">Filtrar Planta:</label>
+          <select id="table-filter-plant" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Todas">Todas as Plantas</option>
+            <option value="Atibaia">Atibaia</option>
+            <option value="Campo Magro">Campo Magro</option>
+            <option value="Castanhal">Castanhal</option>
+            <option value="Joinville">Joinville</option>
+            <option value="Manaus">Manaus</option>
+            <option value="São Simão">São Simão</option>
+            <option value="Sarzedo">Sarzedo</option>
+            <option value="Simões Filho">Simões Filho</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="table-filter-market" class="block font-bold text-slate-700 mb-1">Filtrar Mercado:</label>
+          <select id="table-filter-market" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Todos">Todos os Mercados</option>
+            <option value="Automotive">Automotive</option>
+            <option value="Building">Building</option>
+            <option value="Domestic Appliances">Domestic Appliances</option>
+            <option value="Fish">Fish</option>
+            <option value="Food">Food</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Health and Pharma">Health and Pharma</option>
+            <option value="HVAC">HVAC</option>
+            <option value="Industrial solutions">Industrial solutions</option>
+            <option value="Leisure and Sport">Leisure and Sport</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="table-filter-status" class="block font-bold text-slate-700 mb-1">Status:</label>
+          <select id="table-filter-status" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Todos">Todos os Status</option>
+            <option value="realizado">Apenas Realizado</option>
+            <option value="projetado">Apenas Projetado</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="table-search-day" class="block font-bold text-slate-700 mb-1">Buscar Dia:</label>
+          <input type="number" id="table-search-day" min="1" max="31" placeholder="Ex: 11" 
+            class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Resumo Totalizador da Seleção Atual -->
+      <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-blue-50/60 border border-blue-200/60 rounded-xl text-xs">
+        <span class="font-semibold text-slate-600">Registros exibidos: <strong id="table-count" class="text-slate-900 font-mono-numbers">0</strong></span>
+        <span class="font-semibold text-slate-600">Faturamento: <strong id="table-total-fat" class="text-blue-900 font-mono-numbers">0</strong></span>
+        <span class="font-semibold text-slate-600">Ton. Faturada: <strong id="table-total-ton" class="text-orange-600 font-mono-numbers">0 T</strong></span>
+        <span class="font-semibold text-slate-600">Produção: <strong id="table-total-prod" class="text-slate-800 font-mono-numbers">0 T</strong></span>
+      </div>
+
+      <!-- Tabela com Scroll Horizontal Touch -->
+      <div class="overflow-x-auto custom-scroll-x border border-slate-200 rounded-xl">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 uppercase font-bold text-[10px] border-b border-slate-200">
+              <th class="py-2.5 px-3">Dia</th>
+              <th class="py-2.5 px-3">Planta</th>
+              <th class="py-2.5 px-3">Mercado</th>
+              <th class="py-2.5 px-3">Status Fat.</th>
+              <th class="py-2.5 px-3">Faturamento (R$ mil)</th>
+              <th class="py-2.5 px-3">Toneladas Fat. (T)</th>
+              <th class="py-2.5 px-3">Status Prod.</th>
+              <th class="py-2.5 px-3">Produção (T)</th>
+            </tr>
+          </thead>
+          <tbody id="table-daily-body">
+            <!-- Gerado via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE CONFIGURAÇÕES DE DADOS (SHAREPOINT / EXCEL) -->
+  <div id="modal-config" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Cabeçalho Modal -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900">Conexão Excel & SharePoint</h3>
+            <p class="text-xs text-slate-500">Sincronize sua planilha corporativa em tempo real</p>
+          </div>
+        </div>
+        <button id="btn-close-config" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Opção 1: Conexão via URL do SharePoint -->
+      <div class="space-y-2">
+        <label for="sp-url-input" class="block text-xs font-bold text-slate-800">
+          1. URL do Arquivo Excel no SharePoint / OneDrive
+        </label>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Cole o link de compartilhamento gerado no SharePoint. O sistema converterá automaticamente para download direto (<code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">download=1</code>).
+        </p>
+        <div class="flex gap-2">
+          <input type="url" id="sp-url-input" placeholder="https://seu-sharepoint.sharepoint.com/:x:/r/..." 
+            class="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <button id="btn-test-sync-sp" type="button" class="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap shadow-xs">
+            Sincronizar
+          </button>
+        </div>
+        <button id="btn-save-sp-url" type="button" class="text-[11px] font-semibold text-blue-700 hover:underline">
+          Salvar link no navegador
+        </button>
+      </div>
+
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-3 text-slate-400 text-xs font-semibold">OU</span>
+        <div class="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <!-- Opção 2: Upload Direto de Planilha Local (.xlsx) -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-800">
+          2. Carregar Planilha Local (.xlsx)
+        </label>
+        <p class="text-[11px] text-slate-500">
+          Se as políticas de CORS ou autenticação da sua empresa impedirem o acesso direto via navegador, carregue a planilha baixada do SharePoint:
+        </p>
+        <div class="flex items-center justify-center w-full">
+          <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+            <div class="flex flex-col items-center justify-center pt-2 pb-2">
+              <svg class="w-6 h-6 mb-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p class="text-xs font-semibold text-slate-700">Clique para selecionar ou arraste o arquivo .xlsx</p>
+              <p class="text-[10px] text-slate-500">Formatos aceitos: .xlsx, .xls</p>
+            </div>
+            <input id="excel-file-input" type="file" accept=".xlsx, .xls" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- Opção 3: Baixar Modelo Excel Pré-formatado -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold text-blue-900">Planilha Modelo Formatada</div>
+          <div class="text-[11px] text-blue-700">Gere um Excel com as colunas e abas prontas para o SharePoint.</div>
+        </div>
+        <button id="btn-download-template" type="button" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shadow-xs flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Baixar Modelo
+        </button>
+      </div>
+
+      <!-- Botão para Restaurar Dados Originais (Demo) -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <button id="btn-reset-demo" type="button" class="text-xs text-slate-500 hover:text-red-600 font-semibold transition-colors">
+          Restaurar Dados Originais da Imagem
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURAÇÃO AZURE / MICROSOFT ENTRA ID -->
+  <div id="modal-azure-config" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold">
+            <svg class="w-4 h-4" viewBox="0 0 23 23">
+              <path fill="#f35325" d="M1 1h10v10H1z"/>
+              <path fill="#81bc06" d="M12 1h10v10H12z"/>
+              <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+              <path fill="#ffba08" d="M12 12h10v10H12z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900">Configurar Login Microsoft (Entra ID)</h3>
+            <p class="text-xs text-slate-500">Conecte com o Azure da sua empresa para login corporativo</p>
+          </div>
+        </div>
+        <button id="btn-close-azure-config" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div id="azure-modal-alert" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs text-amber-900 font-medium whitespace-pre-line leading-relaxed shadow-xs"></div>
+
+      <!-- Alerta dinâmico caso acesse por file:// -->
+      <div id="azure-file-protocol-warning" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 space-y-1">
+        <p class="font-bold flex items-center gap-1.5 text-red-800">
+          <svg class="w-4 h-4 text-red-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          Atenção: Arquivo aberto via protocolo file://
+        </p>
+        <p class="text-[11px] leading-relaxed">
+          A Microsoft <strong>não permite</strong> login em arquivos abertos diretamente. Inicie um servidor local com <code class="bg-red-100 text-red-900 px-1 py-0.5 rounded font-mono">python3 -m http.server 8080</code> e abra <code class="font-semibold text-red-900">http://localhost:8080/</code>, ou publique no GitHub Pages.
+        </p>
+      </div>
+
+      <!-- Exibição da URL exata de redirecionamento para cadastrar no Azure -->
+      <div class="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-blue-900 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+            </svg>
+            Sua URL Exata de Redirecionamento (Redirect URI):
+          </span>
+          <button id="btn-copy-redirect-uri" type="button" class="text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg shadow-xs transition-colors cursor-pointer flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            Copiar URL
+          </button>
+        </div>
+        <div class="p-2.5 bg-white rounded-lg border border-blue-200 font-mono text-[11px] text-blue-950 break-all select-all font-semibold shadow-2xs">
+          <span id="current-redirect-uri-display">Carregando URL...</span>
+        </div>
+        <p class="text-[11px] text-blue-800 leading-relaxed">
+          Esta URL acima é a que deve estar cadastrada no Azure em: <br/>
+          <strong class="text-blue-950 font-semibold">Microsoft Entra ID &rarr; App registrations &rarr; Seu Aplicativo &rarr; Autenticação &rarr; Aplicativo de página única (SPA)</strong>.
+        </p>
+      </div>
+
+      <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-2 text-slate-600">
+        <p class="font-bold text-slate-800">Passo a passo no Azure Portal para resolver AADSTS500113:</p>
+        <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-[11px]">
+          <li>Acesse <a href="https://portal.azure.com" target="_blank" class="text-blue-600 underline font-semibold">portal.azure.com</a> e abra seu aplicativo em <strong>App registrations</strong>.</li>
+          <li>No menu lateral esquerdo, clique em <strong>Autenticação</strong> (Authentication).</li>
+          <li>Em <em>Plataformas</em>, certifique-se de que existe a plataforma <strong>SPA (Single-page application)</strong>. Se não existir, clique em <em>Adicionar plataforma</em> &rarr; <em>Aplicativo de página única</em>.</li>
+          <li>Cole a URL acima no campo de <strong>URIs de redirecionamento</strong> e clique em <strong>Salvar</strong> no topo da página.</li>
+        </ol>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label for="azure-client-id-input" class="block font-bold text-slate-800 mb-1">
+            Application (Client) ID:
+          </label>
+          <input type="text" id="azure-client-id-input" placeholder="ex: 12345678-abcd-1234-abcd-1234567890ab" 
+            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+        </div>
+
+        <div>
+          <label for="azure-tenant-id-input" class="block font-bold text-slate-800 mb-1">
+            Directory (Tenant) ID:
+          </label>
+          <input type="text" id="azure-tenant-id-input" value="organizations" placeholder="organizations" 
+            class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+          <p class="text-[10px] text-slate-500 mt-1">
+            <strong>Recomendado:</strong> Deixe como <code class="text-blue-700 bg-blue-50 px-1 rounded font-semibold">organizations</code> para aceitar qualquer e-mail da sua empresa sem precisar caçar o código do locatário.
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button id="btn-save-azure-config" type="button" class="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shadow-xs">
+          Salvar Configurações
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Script da Aplicação -->
+  <script src="app.js"></script>
+</body>
+</html>

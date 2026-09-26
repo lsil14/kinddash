@@ -1,0 +1,130 @@
+/* styles.css - Estilos complementares ao Tailwind CSS */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --primary-blue: #003366;
+  --secondary-blue: #2563eb;
+  --light-blue: #93c5fd;
+  --accent-cyan: #06b6d4;
+  --accent-orange: #ea580c;
+  --light-orange: #fdba74;
+  --bg-slate: #f8fafc;
+  --card-border: #e2e8f0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono-numbers {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Custom Scrollbars para gráficos horizontais no Mobile */
+.custom-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll-x::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.custom-scroll-x::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* Largura mínima para garantir legibilidade dos 31 dias em tela mobile */
+.chart-scroll-canvas {
+  position: relative;
+  min-width: 720px;
+  height: 220px;
+}
+
+@media (min-width: 1024px) {
+  .chart-scroll-canvas {
+    position: relative;
+    min-width: 100%;
+    height: 240px;
+  }
+}
+
+/* Animações e Feedback */
+@keyframes pulseSlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.96); }
+}
+
+.pulse-dot {
+  animation: pulseSlow 2.5s infinite ease-in-out;
+}
+
+/* Marcador de meta temporal (régua de 35% no Lundi por Planta) */
+.target-marker-line {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background-color: #0284c7;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(2, 132, 199, 0.4);
+}
+
+.target-marker-label {
+  position: absolute;
+  top: -16px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #0369a1;
+  background-color: #e0f2fe;
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Toque e interação mobile amigável */
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.active-nav-pill {
+  background-color: #003366 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.25);
+}
+
+/* Transições suaves */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Badges de Mercado */
+.badge-mi {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-me {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
