@@ -79,24 +79,33 @@ O projeto conta com autenticação oficial baseada na biblioteca **MSAL.js** (`@
 
 ---
 
-## ☁️ Integração com Excel no SharePoint
+## 🛡️ Distribuição Segura & Sigilo da Base (Modo Visualizador vs Admin)
 
-Ao clicar no botão **"Fonte de Dados"** -> **"Baixar Modelo"**, o dashboard gera a planilha formatada `Modelo_SharePoint_Mercado_Planta_KindBrasil_24Set.xlsx` com as seguintes abas:
+Para distribuir este relatório para a diretoria e equipes sem compartilhar o link ou permissões da sua planilha do SharePoint:
 
-1. **`Diario_Faturamento`**:
-   - `Dia`, `Data`, `Mercado`, `Planta`, `Tipo` (`realizado` até dia 24 / `projetado` dias 25 a 30), `Faturamento` (R$ mil) e `Tonelada` (T).
-2. **`Diario_Producao`**:
-   - `Dia`, `Data`, `Mercado`, `Planta`, `Tipo` (`realizado` até dia 23 / `projetado` dias 24 a 30) e `Tonelada` (T).
-3. **`Metas_Mercado_Planta`**:
-   - `Mercado`, `Planta`, `Budget`, `Forecast`, `Meta_Lundi` e `Meta_Producao`.
-4. **`Resumo_Consolidado`**:
-   - Resumo geral dos indicadores para conferência.
+### 1. Como funciona a proteção:
+* **Usuários Finais (Visualizadores)**: Acessam o link comum.
+  - ❌ **Não têm acesso ao SharePoint**: Eles não precisam de permissão na sua planilha.
+  - ❌ **Não veem botões de configuração**: Botões de fonte de dados, download de modelos e upload de planilhas ficam 100% ocultos.
+  - ✅ **Carregamento Instantâneo**: Consomem apenas o arquivo compilado `data.json` que já traz os totais do fechamento.
+* **Administrador (Você)**:
+  - Ativação simples adicionando `?admin=true` na URL ou clicando **5 vezes** sobre o título *"Kind Brasil"* no topo.
+  - Acessa o botão **"Publicar Dados"** para carregar a nova planilha e clicar em **"Baixar data.json"**.
+
+### 2. Fluxo diário de atualização:
+1. Abra o painel no modo admin (`?admin=true`);
+2. Carregue ou sincronize a planilha atualizada;
+3. Clique em **"Baixar data.json"**;
+4. Substitua o arquivo `data.json` no seu repositório Git e faça o commit;
+5. Todos os visualizadores passarão a ver os novos números atualizados instantaneamente!
 
 ---
 
 ## 🚀 Como Publicar no GitHub Pages
 
-1. Crie um repositório no GitHub (pode ser público ou privado);
-2. Suba os arquivos do projeto (`index.html`, `app.js`, `auth.js`, `styles.css`);
+1. Crie um repositório no GitHub;
+2. Suba todos os arquivos do projeto (`index.html`, `app.js`, `auth.js`, `styles.css`, `data.json`);
+3. No repositório do GitHub, vá em **Settings** -> **Pages** -> Selecione a branch `main` e a pasta `/ (root)` -> Clique em **Save**;
+4. Em 1 minuto o site estará no ar na URL fornecida pelo GitHub!
 3. No GitHub, acesse **Settings** -> **Pages** -> em *Branch*, selecione `main` e salve;
 4. Sua aplicação estará no ar com a tela de login corporativo pronta para uso!

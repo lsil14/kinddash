@@ -208,7 +208,9 @@ const fmtNumber = (val, decimals = 0) => {
 // Gerenciador Central da Aplicação
 class DashboardApp {
   constructor() {
-    this.granularData = this.loadGranularData();
+    this.initAdminStatus();
+    this.dataPublicationDate = '24/09/2026';
+    this.granularData = this.loadGranularDataSyncFallback();
     this.charts = {};
     this.currentView = 'visao-geral';
     this.progressViewMode = 'mercados'; // 'mercados' ou 'plantas'
@@ -229,9 +231,20 @@ class DashboardApp {
     this.init();
   }
 
-  loadGranularData() {
+  initAdminStatus() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true' || window.location.hash === '#admin') {
+      sessionStorage.setItem('dash_admin_mode', 'true');
+    } else if (urlParams.get('admin') === 'false') {
+      sessionStorage.removeItem('dash_admin_mode');
+    }
+    this.isAdmin = sessionStorage.getItem('dash_admin_mode') === 'true';
+  }
+
+  loadGranularDataSyncFallback() {
+    // Se o admin tiver rascunho salvo em testes locais
     const cached = localStorage.getItem('dash_granular_data_v2');
-    if (cached) {
+    if (this.isAdmin && cached) {
       try {
         return JSON.parse(cached);
       } catch (e) {
@@ -241,12 +254,58 @@ class DashboardApp {
     return generateInitialGranularDataset();
   }
 
+  // Tenta carregar o arquivo data.json consolidado publicado no repositório
+  async loadPublishedDataJson() {
+    try {
+      const resp = await fetch('data.json', { cache: 'no-cache' });
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json && json.diarioFat && json.metas) {
+          // Se não houver rascunho de admin em edição, usa os dados publicados
+          if (!this.isAdmin || !localStorage.getItem('dash_granular_data_v2')) {
+            this.granularData = json;
+          }
+          if (json.dataReferencia) {
+            this.dataPublicationDate = json.dataReferencia;
+          }
+          console.log("Arquivo data.json oficial carregado com sucesso!");
+        }
+      }
+    } catch (err) {
+      console.info("Nota: data.json não carregado via rede (usando dados base).");
+    }
+  }
+
   saveGranularData(data) {
     this.granularData = data;
     localStorage.setItem('dash_granular_data_v2', JSON.stringify(data));
   }
 
-  init() {
+  checkAdminMode() {
+    this.isAdmin = sessionStorage.getItem('dash_admin_mode') === 'true';
+    const adminTools = document.getElementById('admin-tools-container');
+    if (adminTools) {
+      if (this.isAdmin) {
+        adminTools.classList.remove('hidden');
+      } else {
+        adminTools.classList.add('hidden');
+      }
+    }
+
+    const headerRefEl = document.getElementById('header-data-ref');
+    if (headerRefEl && this.dataPublicationDate) {
+      headerRefEl.innerText = this.dataPublicationDate;
+    }
+
+    const configRefInput = document.getElementById('config-data-ref-input');
+    if (configRefInput && this.dataPublicationDate) {
+      configRefInput.value = this.dataPublicationDate;
+    }
+  }
+
+  async init() {
+    await this.loadPublishedDataJson();
+    this.checkAdminMode();
     this.populateDropdowns();
     this.setupEventListeners();
     this.updateAllViews();
@@ -429,6 +488,42 @@ class DashboardApp {
       btnDownloadTemplate.addEventListener('click', () => this.exportSampleExcel());
     }
 
+    const btnExportDataJson = document.getElementById('btn-export-data-json');
+    if (btnExportDataJson) {
+      btnExportDataJson.addEventListener('click', () => this.exportDataJson());
+    }
+
+    const btnCopyDataJson = document.getElementById('btn-copy-data-json');
+    if (btnCopyDataJson) {
+      btnCopyDataJson.addEventListener('click', () => this.copyDataJson());
+    }
+
+    const btnExitAdmin = document.getElementById('btn-exit-admin');
+    if (btnExitAdmin) {
+      btnExitAdmin.addEventListener('click', () => this.exitAdminMode());
+    }
+
+    // Atalho secreto: 5 cliques no título "Kind Brasil" no header alternam Modo Administrador
+    const brandTitle = document.getElementById('brand-title-area');
+    if (brandTitle) {
+      let clicks = 0;
+      let timer = null;
+      brandTitle.addEventListener('click', () => {
+        clicks++;
+        clearTimeout(timer);
+        timer = setTimeout(() => { clicks = 0; }, 2000);
+        if (clicks >= 5) {
+          const current = sessionStorage.getItem('dash_admin_mode') === 'true';
+          const next = !current;
+          sessionStorage.setItem('dash_admin_mode', next ? 'true' : 'false');
+          alert(next ? "Modo Administrador Ativado! Opções de publicação liberadas no topo." : "Modo Administrador Desativado.");
+          this.checkAdminMode();
+          if (window.authManager) window.authManager.checkAdminVisibility();
+          clicks = 0;
+        }
+      });
+    }
+
     if (btnResetDemo) {
       btnResetDemo.addEventListener('click', () => {
         if (confirm("Deseja restaurar os dados originais da imagem de 24/09/2026?")) {
@@ -444,6 +539,85 @@ class DashboardApp {
         }
       });
     }
+  }
+
+  // Gera e descarrega o arquivo data.json consolidado para distribuição pública
+  exportDataJson() {
+    const inputRef = document.getElementById('config-data-ref-input');
+    const refDate = (inputRef ? inputRef.value : this.dataPublicationDate || '24/09/2026').trim();
+    this.dataPublicationDate = refDate;
+
+    const exportPayload = {
+      dataReferencia: refDate,
+      versao: "2.0.0",
+      publicadoEm: new Date().toISOString(),
+      descricao: "Dados consolidados executivos Kind Brasil - Pronto para distribuição sem acesso à base original",
+      metas: this.granularData.metas,
+      diarioFat: this.granularData.diarioFat,
+      diarioProd: this.granularData.diarioProd
+    };
+
+    const jsonStr = JSON.stringify(exportPayload, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Atualiza o header
+    const headerRefEl = document.getElementById('header-data-ref');
+    if (headerRefEl) headerRefEl.innerText = refDate;
+
+    alert(
+      "✅ Arquivo 'data.json' baixado com sucesso!\n\n" +
+      "Como publicar o fechamento para toda a equipe:\n" +
+      "1. Substitua o arquivo 'data.json' na pasta do seu repositório Git;\n" +
+      "2. Faça o commit/push no GitHub Pages.\n\n" +
+      "Pronto! Todos os usuários passarão a ver os números atualizados automaticamente sem ter acesso ao seu SharePoint!"
+    );
+  }
+
+  // Copia o JSON para a área de transferência
+  copyDataJson() {
+    const inputRef = document.getElementById('config-data-ref-input');
+    const refDate = (inputRef ? inputRef.value : this.dataPublicationDate || '24/09/2026').trim();
+
+    const exportPayload = {
+      dataReferencia: refDate,
+      versao: "2.0.0",
+      publicadoEm: new Date().toISOString(),
+      descricao: "Dados consolidados executivos Kind Brasil - Pronto para distribuição sem acesso à base original",
+      metas: this.granularData.metas,
+      diarioFat: this.granularData.diarioFat,
+      diarioProd: this.granularData.diarioProd
+    };
+
+    const jsonStr = JSON.stringify(exportPayload, null, 2);
+    navigator.clipboard.writeText(jsonStr).then(() => {
+      const btn = document.getElementById('btn-copy-data-json');
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "<span>Copiado!</span>";
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      }
+    }).catch(err => {
+      console.warn("Falha ao copiar:", err);
+      alert("Não foi possível copiar para a área de transferência. Use o botão 'Baixar data.json'.");
+    });
+  }
+
+  // Sai do Modo Administrador para voltar à visão comum do visualizador
+  exitAdminMode() {
+    sessionStorage.setItem('dash_admin_mode', 'false');
+    this.checkAdminMode();
+    if (window.authManager) window.authManager.checkAdminVisibility();
+    const modalConfig = document.getElementById('modal-config');
+    if (modalConfig) modalConfig.classList.add('hidden');
+    alert("Modo Administrador Desativado.\n\nVocê agora está visualizando o painel exatamente como seus diretores e equipe verão.");
   }
 
   switchView(viewName) {

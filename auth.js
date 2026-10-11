@@ -24,10 +24,31 @@ class MicrosoftAuthManager {
   }
 
   async init() {
+    this.checkAdminVisibility();
     this.setupUIEventListeners();
     await this.initMsal();
     this.checkCurrentSession();
     this.updateRedirectUriNotice();
+  }
+
+  // Controla exibição de itens técnicos e administrativos na tela de login
+  checkAdminVisibility() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true' || window.location.hash === '#admin') {
+      sessionStorage.setItem('dash_admin_mode', 'true');
+    } else if (urlParams.get('admin') === 'false') {
+      sessionStorage.removeItem('dash_admin_mode');
+    }
+
+    const isAdmin = sessionStorage.getItem('dash_admin_mode') === 'true';
+    const adminAzureEl = document.getElementById('admin-azure-config-container');
+    if (adminAzureEl) {
+      if (isAdmin) {
+        adminAzureEl.classList.remove('hidden');
+      } else {
+        adminAzureEl.classList.add('hidden');
+      }
+    }
   }
 
   // Obtém a URL exata de redirecionamento limpa (sem query strings ou hash)
@@ -356,6 +377,27 @@ class MicrosoftAuthManager {
           btnCopyUri.innerText = "Copiado!";
           setTimeout(() => { btnCopyUri.innerText = "Copiar URL"; }, 2000);
         });
+      });
+    }
+
+    // Atalho discreto: 5 toques no badge do portal alternam Modo Admin
+    const gatekeeperBadge = document.querySelector('#login-gatekeeper .pulse-dot')?.parentElement;
+    if (gatekeeperBadge) {
+      let clickCount = 0;
+      let clickTimer = null;
+      gatekeeperBadge.addEventListener('click', () => {
+        clickCount++;
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
+        if (clickCount >= 5) {
+          const current = sessionStorage.getItem('dash_admin_mode') === 'true';
+          const next = !current;
+          sessionStorage.setItem('dash_admin_mode', next ? 'true' : 'false');
+          alert(next ? "Modo Administrador Ativado! Opções avançadas liberadas." : "Modo Administrador Desativado.");
+          this.checkAdminVisibility();
+          if (window.dashApp) window.dashApp.checkAdminMode();
+          clickCount = 0;
+        }
       });
     }
   }
